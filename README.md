@@ -98,7 +98,7 @@ Caddy ทำ TLS/reverse proxy เท่านั้น; application จะต�
 
 ### VPS bandwidth
 
-HomeOps backend สามารถอ่าน byte counter ของ network interface จาก `/proc/net/dev` บน Ubuntu ได้โดยตรง แล้วคำนวณอัตรา upload/download จากค่าปัจจุบันเทียบกับ sample ก่อนหน้า. วิธีนี้ไม่ต้องติดตั้ง agent เพิ่ม แต่ history และกราฟย้อนหลังต้องให้ backend บันทึก sample ลง SQLite เอง
+HomeOps backend สามารถอ่าน byte counter ของ network interface จาก `/proc/net/dev` บน Ubuntu ได้โดยตรง แล้วคำนวณอัตรา upload/download จากค่าปัจจุบันเทียบกับ sample ก่อนหน้า. Live API จะเก็บ sample ใน SQLite ไว้ 30 วัน และหน้า **Bandwidth** แสดงกราฟย้อนหลัง 1 ชั่วโมง, 24 ชั่วโมง หรือ 7 วัน. ต้องเปิด Live API อย่างน้อยสองครั้งเพื่อให้มี sample แรกสำหรับคำนวณอัตรา
 
 ### FRP tunnel status
 

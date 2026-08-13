@@ -13,6 +13,7 @@ const demoData = {
 };
 let data = demoData;
 let toastTimer;
+let bandwidthHours = 24;
 const emptyService = () => ({ name:'', host:'', healthUrl:'', tunnel:'', localTarget:'', icon:'◈', color:'gray' });
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[character]);
 
@@ -40,14 +41,60 @@ async function useLiveApi() {
     if (!payload || !Array.isArray(payload.services) || !Array.isArray(payload.tunnels)) throw new Error('invalid response');
     data = { ...demoData, ...payload };
     render();
+    if (document.querySelector('#bandwidth').classList.contains('active')) loadBandwidth();
     notify('Live API connected — data refreshed');
   } catch (_) {
     data = demoData; render(); setMode('demo');
+    renderBandwidth([]);
     notify('Live API unavailable — showing demo data');
   }
 }
 document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => {
-  if (button.dataset.mode === 'live') useLiveApi(); else { data = demoData; render(); setMode('demo'); notify('Demo data enabled'); }
+  if (button.dataset.mode === 'live') useLiveApi(); else { data = demoData; render(); setMode('demo'); renderBandwidth([]); notify('Demo data enabled'); }
+}));
+
+function svgPoints(samples, key, maximum) {
+  return samples.map((sample, index) => {
+    const x = samples.length === 1 ? 500 : index / (samples.length - 1) * 1000;
+    const y = 250 - (sample[key] / maximum * 220);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+}
+
+function renderBandwidth(samples) {
+  const chart = document.querySelector('#bandwidthChart');
+  const empty = document.querySelector('#bandwidthEmpty');
+  if (!samples.length) {
+    chart.innerHTML = '';
+    empty.hidden = false;
+    return;
+  }
+  const maximum = Math.max(1, ...samples.flatMap(sample => [sample.downloadMbps, sample.uploadMbps]));
+  const grid = [30, 85, 140, 195, 250].map(y => `<line x1="0" x2="1000" y1="${y}" y2="${y}"></line>`).join('');
+  chart.innerHTML = `<g class="chart-grid">${grid}</g><polyline class="chart-download" points="${svgPoints(samples, 'downloadMbps', maximum)}"></polyline><polyline class="chart-upload" points="${svgPoints(samples, 'uploadMbps', maximum)}"></polyline><text x="0" y="18">${maximum.toFixed(1)} Mbps</text><text x="0" y="275">Now</text>`;
+  empty.hidden = true;
+}
+
+async function loadBandwidth() {
+  if (localStorage.getItem('homeops-mode') !== 'live') {
+    renderBandwidth([]);
+    return;
+  }
+  try {
+    const response = await fetch(`${API_BASE}/bandwidth?hours=${bandwidthHours}`, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+    if (!response.ok) throw new Error('Unable to load bandwidth history');
+    const payload = await response.json();
+    renderBandwidth(Array.isArray(payload.samples) ? payload.samples : []);
+  } catch (error) {
+    renderBandwidth([]);
+    notify(error.message);
+  }
+}
+
+document.querySelectorAll('[data-hours]').forEach(button => button.addEventListener('click', () => {
+  bandwidthHours = Number(button.dataset.hours);
+  document.querySelectorAll('[data-hours]').forEach(item => item.classList.toggle('active', item === button));
+  loadBandwidth();
 }));
 
 function serviceField(service, index) {
@@ -92,7 +139,7 @@ document.querySelector('#servicesForm').onsubmit = async event => {
   } catch (error) { notify(error.message); }
 };
 
-function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === id)); document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('active', a.dataset.page === id)); document.querySelector('#pageTitle').textContent = document.querySelector(`[data-page="${id}"]`)?.textContent.trim().replace('2','') || id; document.body.classList.remove('nav-open'); window.scrollTo({top:0, behavior:'smooth'}); }
+function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === id)); document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('active', a.dataset.page === id)); document.querySelector('#pageTitle').textContent = document.querySelector(`[data-page="${id}"]`)?.textContent.trim().replace('2','') || id; document.body.classList.remove('nav-open'); window.scrollTo({top:0, behavior:'smooth'}); if (id === 'bandwidth') loadBandwidth(); }
 document.querySelectorAll('[data-page]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); showPage(a.dataset.page); history.replaceState(null,'','#'+a.dataset.page); }));
 document.querySelector('#menuBtn').onclick = () => document.body.classList.toggle('nav-open');
 document.querySelector('#logoutBtn').onclick = async () => { await fetch('/api/auth/logout', { method:'POST' }); location.replace('/login.html'); };

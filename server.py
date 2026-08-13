@@ -54,6 +54,14 @@ def initialize_db():
         "(interface TEXT PRIMARY KEY, rx INTEGER NOT NULL, tx INTEGER NOT NULL, sampled_at REAL NOT NULL)"
     )
     con.execute(
+        "CREATE TABLE IF NOT EXISTS bandwidth_samples "
+        "(interface TEXT NOT NULL, download_mbps REAL NOT NULL, upload_mbps REAL NOT NULL, sampled_at REAL NOT NULL)"
+    )
+    con.execute(
+        "CREATE INDEX IF NOT EXISTS bandwidth_samples_sampled_at "
+        "ON bandwidth_samples(sampled_at)"
+    )
+    con.execute(
         "CREATE TABLE IF NOT EXISTS login_attempts "
         "(username TEXT NOT NULL, attempted_at INTEGER NOT NULL)"
     )
@@ -88,6 +96,10 @@ def cleanup_expired():
         con.execute(
             "DELETE FROM login_attempts WHERE attempted_at < ?",
             (int(time.time()) - LOGIN_WINDOW_SECONDS,),
+        )
+        con.execute(
+            "DELETE FROM bandwidth_samples WHERE sampled_at < ?",
+            (time.time() - 30 * 24 * 3600,),
         )
         con.commit()
         con.close()
@@ -201,16 +213,40 @@ def net_rate():
             "INSERT OR REPLACE INTO net_samples VALUES (?,?,?,?)",
             (interface, rx, tx, now),
         )
+        if prior and now > prior[2]:
+            seconds = now - prior[2]
+            down = max(0, (rx - prior[0]) * 8 / seconds / 1_000_000)
+            up = max(0, (tx - prior[1]) * 8 / seconds / 1_000_000)
+            con.execute(
+                "INSERT INTO bandwidth_samples VALUES (?,?,?,?)",
+                (interface, down, up, now),
+            )
+        else:
+            down = up = 0
         con.commit()
         con.close()
     if not prior or now <= prior[2]:
         return interface, 0, 0
-    seconds = now - prior[2]
-    return (
-        interface,
-        max(0, (rx - prior[0]) * 8 / seconds / 1_000_000),
-        max(0, (tx - prior[1]) * 8 / seconds / 1_000_000),
-    )
+    return interface, down, up
+
+
+def bandwidth_history(interface, hours):
+    cutoff = time.time() - hours * 3600
+    con = db()
+    rows = con.execute(
+        "SELECT download_mbps, upload_mbps, sampled_at FROM bandwidth_samples "
+        "WHERE interface = ? AND sampled_at >= ? ORDER BY sampled_at",
+        (interface, cutoff),
+    ).fetchall()
+    con.close()
+    return [
+        {
+            "downloadMbps": round(download, 2),
+            "uploadMbps": round(upload, 2),
+            "sampledAt": round(sampled_at),
+        }
+        for download, upload, sampled_at in rows
+    ]
 
 
 def frps_online():
@@ -500,17 +536,37 @@ class HomeOpsHandler(SimpleHTTPRequestHandler):
         return self.json(200, {"services": services})
 
     def do_GET(self):
+        request = urlparse(self.path)
+        path = request.path
         if self.path == "/api/auth/session":
             authenticated = self.authenticated()
             return self.json(
                 200 if authenticated else 401,
                 {"authenticated": authenticated},
             )
-        if self.path == "/api/dashboard":
+        if path == "/api/dashboard":
             if not self.authenticated():
                 return self.json(401, {"error": "Unauthenticated"})
             return self.json(200, dashboard())
-        if self.path == "/api/services":
+        if path == "/api/bandwidth":
+            if not self.authenticated():
+                return self.json(401, {"error": "Unauthenticated"})
+            try:
+                hours = int(request.query.split("=", 1)[1]) if request.query.startswith("hours=") else 24
+            except ValueError:
+                return self.json(400, {"error": "Invalid hours"})
+            if hours not in {1, 24, 168}:
+                return self.json(400, {"error": "Invalid hours"})
+            interface = default_interface()
+            return self.json(
+                200,
+                {
+                    "hours": hours,
+                    "interface": interface,
+                    "samples": bandwidth_history(interface, hours),
+                },
+            )
+        if path == "/api/services":
             if not self.authenticated():
                 return self.json(401, {"error": "Unauthenticated"})
             return self.json(200, {"services": load_services()})
