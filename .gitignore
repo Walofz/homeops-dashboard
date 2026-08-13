@@ -1,0 +1,10 @@
+# Runtime state and secrets
+homeops.db
+*.db-journal
+__pycache__/
+*.py[cod]
+.env
+
+# Local editor/system files
+.DS_Store
+Thumbs.db

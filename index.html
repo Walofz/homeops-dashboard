@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#090b10" />
+  <title>HomeOps — Infrastructure</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .mode-switch{border:1px solid #252a36;border-radius:7px;padding:3px;display:flex;gap:2px}.mode-switch button{color:#8c93a3;background:transparent;border:0;border-radius:5px;padding:5px 8px;cursor:pointer;font:10px 'DM Mono',monospace}.mode-switch button.active{background:#2e2942;color:#cec5ff}.toast{position:fixed;z-index:10;bottom:25px;right:25px;background:#222735;border:1px solid #3b4251;color:#e3e6ed;padding:12px 16px;border-radius:8px;font-size:12px;box-shadow:0 10px 30px #0008;opacity:0;transform:translateY(8px);pointer-events:none;transition:.2s}.toast.show{opacity:1;transform:none}@media(max-width:720px){.mode-switch{display:none}.toast{left:20px;right:20px;bottom:20px}}
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand"><span class="brand-mark">H</span><span>HomeOps</span><small>INFRASTRUCTURE</small></div>
+      <nav class="nav" aria-label="Main navigation">
+        <a class="active" href="#overview" data-page="overview"><i>⌘</i>Overview</a>
+        <a href="#network" data-page="network"><i>⌁</i>Network</a>
+        <a href="#tunnels" data-page="tunnels"><i>⇄</i>FRP Tunnels</a>
+        <a href="#services" data-page="services"><i>◈</i>Services</a>
+        <a href="#bandwidth" data-page="bandwidth"><i>⌇</i>Bandwidth</a>
+        <a href="#alerts" data-page="alerts"><i>△</i>Alerts <b>2</b></a>
+        <a href="#map" data-page="map"><i>⌘</i>System Map</a>
+      </nav>
+      <div class="sidebar-foot"><span class="pulse"></span>All systems operational<br><small>Last sync: just now</small></div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <button class="menu-btn" aria-label="Open menu" id="menuBtn">☰</button>
+        <div><p class="eyebrow">HOME LAB / BANGKOK</p><h1 id="pageTitle">Overview</h1></div>
+        <div class="top-actions"><div class="mode-switch" role="group" aria-label="Data mode"><button class="active" data-mode="demo">Demo</button><button data-mode="live">Live API</button></div><button class="icon-btn" title="Notifications">♧<span></span></button><button class="avatar" id="logoutBtn" title="Sign out">PJ</button></div>
+      </header>
+
+      <section class="page active" id="overview">
+        <div class="hero"><div><p class="eyebrow">THURSDAY, 13 AUGUST 2026</p><h2>Your infrastructure is <em>healthy.</em></h2><p class="muted">Everything is routed and responding normally.</p></div><div class="clock"><strong id="clock">--:--</strong><small>ICT · UTC+07:00</small></div></div>
+        <div class="stats-grid">
+          <article class="stat"><span class="label">VPS UPTIME</span><strong>99.98<small>%</small></strong><p class="good">↑ 0.02% this month</p></article>
+          <article class="stat"><span class="label">ACTIVE TUNNELS</span><strong>6<small>/ 6</small></strong><p class="good">● All connected</p></article>
+          <article class="stat"><span class="label">TOTAL SERVICES</span><strong>9<small> live</small></strong><p>7 public · 2 private</p></article>
+          <article class="stat"><span class="label">INTERNET LATENCY</span><strong>12<small> ms</small></strong><p class="good">↓ 3 ms from average</p></article>
+        </div>
+        <div class="dashboard-grid">
+          <article class="panel bandwidth-panel"><div class="panel-head"><div><span class="label">BANDWIDTH</span><h3>Gateway traffic</h3></div><button class="select">24 hours⌄</button></div><div class="legend"><span><i class="down"></i>Download <b>24.8 Mbps</b></span><span><i class="up"></i>Upload <b>4.2 Mbps</b></span></div><div class="chart"><svg viewBox="0 0 760 210" preserveAspectRatio="none" aria-label="Bandwidth chart"><defs><linearGradient id="fill" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#8c7cff" stop-opacity=".35"/><stop offset="1" stop-color="#8c7cff" stop-opacity="0"/></linearGradient></defs><path class="grid" d="M0 20H760M0 80H760M0 140H760M0 200H760"/><path class="area" d="M0 160 C35 145 55 153 80 119 S125 147 150 110 S198 110 222 135 S270 81 302 102 S354 95 378 126 S425 45 461 87 S505 59 540 102 S582 82 607 126 S650 105 687 143 S723 118 760 153 V210H0Z"/><path class="line" d="M0 160 C35 145 55 153 80 119 S125 147 150 110 S198 110 222 135 S270 81 302 102 S354 95 378 126 S425 45 461 87 S505 59 540 102 S582 82 607 126 S650 105 687 143 S723 118 760 153"/></svg><div class="axis"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>Now</span></div></div></article>
+          <article class="panel services-panel"><div class="panel-head"><div><span class="label">SERVICES</span><h3>Service health</h3></div><a href="#services" class="text-link" data-page="services">View all →</a></div><div id="serviceList" class="service-list"></div></article>
+          <article class="panel tunnel-panel"><div class="panel-head"><div><span class="label">FRP</span><h3>Tunnel status</h3></div><a href="#tunnels" class="text-link" data-page="tunnels">Manage →</a></div><div class="route"><div class="node vps">VPS<small>FRPS</small></div><div class="route-line"><span></span></div><div class="node home">HOME<small>FRPC</small></div></div><p class="route-note"><span class="pulse"></span> 6 encrypted reverse-proxy tunnels online</p></article>
+          <article class="panel alerts-panel"><div class="panel-head"><div><span class="label">RECENT ACTIVITY</span><h3>Needs attention</h3></div><a href="#alerts" class="text-link" data-page="alerts">See alerts →</a></div><div class="alert warning"><span>!</span><p><b>Disk space is reaching 80%</b><small>VPS · 18 minutes ago</small></p></div><div class="alert info"><span>i</span><p><b>Backup completed successfully</b><small>Home NAS · Today, 02:00</small></p></div></article>
+        </div>
+      </section>
+
+      <section class="page" id="network"><div class="section-intro"><h2>Network</h2><p>Live connectivity across your edge and home network.</p></div><div class="network-cards" id="networkCards"></div></section>
+      <section class="page" id="tunnels"><div class="section-intro"><h2>FRP Tunnels</h2><p>Reverse proxy connections from your VPS to services at home.</p></div><div class="panel table-panel"><table><thead><tr><th>TUNNEL</th><th>LOCAL TARGET</th><th>PUBLIC ADDRESS</th><th>STATUS</th><th>LATENCY</th></tr></thead><tbody id="tunnelTable"></tbody></table></div></section>
+      <section class="page" id="services"><div class="section-intro"><h2>Services</h2><p>Applications currently exposed through Caddy and FRP.</p></div><div id="servicesGrid" class="services-grid"></div></section>
+      <section class="page" id="bandwidth"><div class="section-intro"><h2>Bandwidth</h2><p>Traffic monitoring for VPS and home gateway.</p></div><div class="panel large-placeholder"><span>⌇</span><h3>Detailed traffic analytics</h3><p>Ready to connect to Prometheus, Netdata, or your own API.</p></div></section>
+      <section class="page" id="alerts"><div class="section-intro"><h2>Alerts</h2><p>Recent infrastructure events and warnings.</p></div><div class="panel alert-feed" id="alertFeed"></div></section>
+      <section class="page" id="map"><div class="section-intro"><h2>System Map</h2><p>Your request flow — no VPN required.</p></div><div class="panel map-panel"><div class="map-flow"><div class="map-node"><i>◎</i><b>Internet</b><small>Visitors & devices</small></div><div class="arrow">→<small>HTTPS :443</small></div><div class="map-node violet"><i>◆</i><b>Caddy</b><small>VPS · TLS & routing</small></div><div class="arrow">→<small>FRP</small></div><div class="map-node blue"><i>⇄</i><b>FRPS</b><small>VPS · public edge</small></div><div class="arrow">⇄<small>encrypted tunnel</small></div><div class="map-node green"><i>⌂</i><b>FRPC</b><small>Home · outbound</small></div><div class="arrow">→<small>LAN</small></div><div class="map-node orange"><i>◈</i><b>Services</b><small>NAS · apps · tools</small></div></div><div class="map-caption">Inbound requests terminate at Caddy on your VPS, then travel via FRP's outbound home connection to the appropriate local service.</div></div></section>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
