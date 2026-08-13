@@ -72,3 +72,38 @@ Caddy ทำ TLS/reverse proxy เท่านั้น; application จะต�
 ## Live API ในอนาคต
 
 โหมด Live ต้องการ `GET /api/dashboard` ที่ตอบ JSON. Server ปัจจุบันป้องกันเส้นทาง `/api/*` ด้วย session แล้ว แต่ยังไม่ได้สร้างข้อมูล monitoring ให้เอง. เมื่อเพิ่ม endpoint ต้องให้มันคืนอย่างน้อย `services` และ `tunnels`; ดูรูปแบบตัวอย่างใน `demoData` ภายใน [app.js](app.js)
+
+## Live monitoring บน Ubuntu VPS
+
+ส่วนนี้เป็นการตั้งค่าเพิ่มเติมเมื่อพร้อมใช้โหมด **Live API**; ไม่จำเป็นสำหรับโหมด Demo
+
+### VPS bandwidth
+
+HomeOps backend สามารถอ่าน byte counter ของ network interface จาก `/proc/net/dev` บน Ubuntu ได้โดยตรง แล้วคำนวณอัตรา upload/download จากค่าปัจจุบันเทียบกับ sample ก่อนหน้า. วิธีนี้ไม่ต้องติดตั้ง agent เพิ่ม แต่ history และกราฟย้อนหลังต้องให้ backend บันทึก sample ลง SQLite เอง
+
+### FRP tunnel status
+
+FRPS ที่ไม่ได้เปิด web server ไม่มี status API ที่แนะนำให้ใช้สำหรับ dashboard. เปิด FRPS dashboard และ Prometheus metrics เฉพาะ localhost บน VPS เพื่อให้ HomeOps backend อ่านได้ โดยไม่เปิดพอร์ตออก internet:
+
+```toml
+# เพิ่มใน /etc/frp/frps.toml (ตำแหน่งไฟล์อาจต่างกันตามการติดตั้ง)
+webServer.addr = "127.0.0.1"
+webServer.port = 7500
+webServer.user = "homeops"
+webServer.password = "ใช้รหัสผ่านยาวและสุ่ม"
+enablePrometheus = true
+```
+
+ตรวจ config และ restart:
+
+```sh
+sudo frps verify -c /etc/frp/frps.toml
+sudo systemctl restart frps
+curl -u homeops 'http://127.0.0.1:7500/metrics'
+```
+
+อย่าเปิด port `7500` ที่ firewall และอย่าให้ Caddy reverse proxy ไปยัง port นี้. HomeOps backend บนเครื่องเดียวกันจึงจะเรียก `http://127.0.0.1:7500/metrics` ได้. FRP ใช้ metrics ร่วมกับ web server/dashboard ดังนั้นต้องเปิดทั้งสองค่านี้จึงจะมี Prometheus endpoint. ดู [FRP monitoring documentation](https://gofrp.org/en/docs/features/common/monitor/) สำหรับข้อมูลเพิ่มเติม
+
+### Service health
+
+backend สามารถตรวจ HTTPS ของโดเมนบริการผ่าน Caddy ตามรายการที่กำหนด แล้วรวมผลเป็นสถานะ Online/Offline. การตรวจแบบนี้เห็นผลจากเส้นทางจริง `Caddy → FRPS → FRPC → service` แต่ไม่ควรใช้แทน authentication หรือการตรวจสอบภายในของแต่ละแอป
