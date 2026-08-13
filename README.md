@@ -81,6 +81,13 @@ Caddy ทำ TLS/reverse proxy เท่านั้น; application จะต�
 
 หากเปิด `index.html` ด้วย file browser โดยตรง จะข้ามระบบ login ได้ เพราะไม่ได้ผ่าน `server.py`; สำหรับใช้งานจริงให้เข้าเฉพาะผ่านโดเมน/Caddy
 
+## ความปลอดภัยในการใช้งาน
+
+- HomeOps ออก session cookie พร้อม `Secure`, `HttpOnly` และ `SameSite=Strict` ดังนั้นต้องเข้าผ่าน HTTPS ที่ Caddy เท่านั้น
+- ระบบจำกัดความพยายามลงชื่อเข้าใช้ที่ 5 ครั้งต่อบัญชีใน 15 นาที และล้าง session ที่หมดอายุทุกชั่วโมง
+- Caddy เป็น trusted reverse proxy ของแอป; อย่า expose port `3000` ออก internet
+- Live health checks ทำงานพร้อมกันและ cache ผล 20 วินาที เพื่อลดการรอเมื่อปลายทางหลายรายการล่ม
+
 ## Live API
 
 กด **Live API** ในมุมขวาบนเพื่อให้หน้าเว็บเรียก `GET /api/dashboard`. Server จะตอบข้อมูลจริงที่รวม bandwidth ของ VPS, ความพร้อมของ FRPS metrics และ health check ของทุก service ใน `services.json`. ต้องรอสองครั้งในการ refresh เพื่อคำนวณอัตรา bandwidth จากผลต่างของ byte counter
