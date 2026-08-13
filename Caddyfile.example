@@ -1,5 +1,5 @@
 # เปลี่ยน dashboard.example.com เป็นโดเมนจริง
 dashboard.example.com {
     # HomeOps app จัดการหน้า login, session และ API เอง
-    reverse_proxy 127.0.0.1:3000
+    reverse_proxy 127.0.0.1:13000
 }

@@ -54,7 +54,18 @@
 
       <section class="page" id="network"><div class="section-intro"><h2>Network</h2><p>Live connectivity across your edge and home network.</p></div><div class="network-cards" id="networkCards"></div></section>
       <section class="page" id="tunnels"><div class="section-intro"><h2>FRP Tunnels</h2><p>Reverse proxy connections from your VPS to services at home.</p></div><div class="panel table-panel"><table><thead><tr><th>TUNNEL</th><th>LOCAL TARGET</th><th>PUBLIC ADDRESS</th><th>STATUS</th><th>LATENCY</th></tr></thead><tbody id="tunnelTable"></tbody></table></div></section>
-      <section class="page" id="services"><div class="section-intro"><h2>Services</h2><p>Applications currently exposed through Caddy and FRP.</p></div><div id="servicesGrid" class="services-grid"></div></section>
+      <section class="page" id="services">
+        <div class="section-intro section-intro-actions"><div><h2>Services</h2><p>Applications currently exposed through Caddy and FRP.</p></div><button class="primary-btn" id="manageServicesBtn">Manage services</button></div>
+        <div id="servicesGrid" class="services-grid"></div>
+        <section class="panel service-editor" id="serviceEditor" hidden>
+          <div class="panel-head"><div><span class="label">SERVICES.JSON</span><h3>Manage monitored services</h3></div><button class="text-btn" id="closeEditorBtn">Close</button></div>
+          <p class="editor-help">Changes control HomeOps monitoring only; they do not change your FRPC configuration.</p>
+          <form id="servicesForm">
+            <div id="serviceFields"></div>
+            <div class="editor-actions"><button class="select" type="button" id="addServiceBtn">Add service</button><button class="primary-btn" type="submit">Save services</button></div>
+          </form>
+        </section>
+      </section>
       <section class="page" id="bandwidth"><div class="section-intro"><h2>Bandwidth</h2><p>Traffic monitoring for VPS and home gateway.</p></div><div class="panel large-placeholder"><span>⌇</span><h3>Detailed traffic analytics</h3><p>Ready to connect to Prometheus, Netdata, or your own API.</p></div></section>
       <section class="page" id="alerts"><div class="section-intro"><h2>Alerts</h2><p>Recent infrastructure events and warnings.</p></div><div class="panel alert-feed" id="alertFeed"></div></section>
       <section class="page" id="map"><div class="section-intro"><h2>System Map</h2><p>Your request flow — no VPN required.</p></div><div class="panel map-panel"><div class="map-flow"><div class="map-node"><i>◎</i><b>Internet</b><small>Visitors & devices</small></div><div class="arrow">→<small>HTTPS :443</small></div><div class="map-node violet"><i>◆</i><b>Caddy</b><small>VPS · TLS & routing</small></div><div class="arrow">→<small>FRP</small></div><div class="map-node blue"><i>⇄</i><b>FRPS</b><small>VPS · public edge</small></div><div class="arrow">⇄<small>encrypted tunnel</small></div><div class="map-node green"><i>⌂</i><b>FRPC</b><small>Home · outbound</small></div><div class="arrow">→<small>LAN</small></div><div class="map-node orange"><i>◈</i><b>Services</b><small>NAS · apps · tools</small></div></div><div class="map-caption">Inbound requests terminate at Caddy on your VPS, then travel via FRP's outbound home connection to the appropriate local service.</div></div></section>

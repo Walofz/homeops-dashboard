@@ -12,12 +12,14 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from tempfile import NamedTemporaryFile
+from urllib.parse import urlparse
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent
 DB_PATH, SERVICES_PATH = ROOT / "homeops.db", ROOT / "services.json"
-PORT = int(os.getenv("HOMEOPS_PORT", "3000"))
+PORT = int(os.getenv("HOMEOPS_PORT", "13000"))
 USERNAME = os.getenv("HOMEOPS_ADMIN_USER", "admin")
 INITIAL_PASSWORD = os.getenv("HOMEOPS_ADMIN_PASSWORD")
 SESSION_SECONDS = 43200
@@ -102,9 +104,67 @@ def load_services():
         return []
     try:
         value = json.loads(SERVICES_PATH.read_text(encoding="utf-8"))
-        return value if isinstance(value, list) else []
+        if not isinstance(value, list):
+            return []
+        services = []
+        for item in value:
+            if isinstance(item, dict):
+                service = dict(item)
+                if "healthUrl" not in service and isinstance(service.get("url"), str):
+                    service["healthUrl"] = service["url"]
+                services.append(service)
+        return services
     except (OSError, json.JSONDecodeError):
         return []
+
+
+def validate_services(value):
+    if not isinstance(value, list) or len(value) > 100:
+        raise ValueError("Services must be a list with at most 100 entries")
+    services = []
+    allowed_colors = {"green", "violet", "blue", "orange", "gray"}
+    for item in value:
+        if not isinstance(item, dict):
+            raise ValueError("Each service must be an object")
+        service = {}
+        for key, limit in {
+            "name": 100,
+            "host": 255,
+            "healthUrl": 2048,
+            "tunnel": 100,
+            "localTarget": 255,
+            "icon": 16,
+        }.items():
+            entry = item.get(key, "")
+            if not isinstance(entry, str) or len(entry.strip()) > limit:
+                raise ValueError(f"Invalid {key}")
+            service[key] = entry.strip()
+        if not service["name"] or not service["host"]:
+            raise ValueError("Service name and host are required")
+        if service["healthUrl"]:
+            parsed = urlparse(service["healthUrl"])
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                raise ValueError("Health URL must be an HTTP or HTTPS URL")
+        color = item.get("color", "gray")
+        if color not in allowed_colors:
+            raise ValueError("Invalid color")
+        service["color"] = color
+        services.append(service)
+    return services
+
+
+def save_services(services):
+    contents = json.dumps(services, indent=2, ensure_ascii=False) + "\n"
+    with NamedTemporaryFile(
+        mode="w", encoding="utf-8", dir=ROOT, prefix=".services-", suffix=".tmp", delete=False
+    ) as temporary:
+        temporary.write(contents)
+        temporary_path = Path(temporary.name)
+    try:
+        os.replace(temporary_path, SERVICES_PATH)
+    except OSError:
+        temporary_path.unlink(missing_ok=True)
+        raise
 
 
 def default_interface():
@@ -353,14 +413,20 @@ class HomeOpsHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def request_json(self):
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if length < 1 or length > 100_000:
+                raise ValueError
+            value = json.loads(self.rfile.read(length))
+        except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
+            return None
+        return value
+
     def do_POST(self):
         if self.path == "/api/auth/login":
-            try:
-                length = int(self.headers.get("Content-Length", "0"))
-                if length < 1 or length > 10_000:
-                    return self.json(413, {"error": "Request is too large"})
-                payload = json.loads(self.rfile.read(length))
-            except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
+            payload = self.request_json()
+            if payload is None:
                 return self.json(400, {"error": "Invalid request"})
             if not isinstance(payload, dict):
                 return self.json(400, {"error": "Invalid request"})
@@ -419,6 +485,20 @@ class HomeOpsHandler(SimpleHTTPRequestHandler):
             )
         return self.json(404, {"error": "Not found"})
 
+    def do_PUT(self):
+        if self.path != "/api/services":
+            return self.json(404, {"error": "Not found"})
+        if not self.authenticated():
+            return self.json(401, {"error": "Unauthenticated"})
+        payload = self.request_json()
+        try:
+            services = validate_services(payload)
+            with DB_LOCK:
+                save_services(services)
+        except (OSError, ValueError) as error:
+            return self.json(400, {"error": str(error)})
+        return self.json(200, {"services": services})
+
     def do_GET(self):
         if self.path == "/api/auth/session":
             authenticated = self.authenticated()
@@ -430,6 +510,10 @@ class HomeOpsHandler(SimpleHTTPRequestHandler):
             if not self.authenticated():
                 return self.json(401, {"error": "Unauthenticated"})
             return self.json(200, dashboard())
+        if self.path == "/api/services":
+            if not self.authenticated():
+                return self.json(401, {"error": "Unauthenticated"})
+            return self.json(200, {"services": load_services()})
         if self.path.startswith("/api/"):
             return (
                 self.json(401, {"error": "Unauthenticated"})
