@@ -1,5 +1,6 @@
 # Runtime state and secrets
 homeops.db
+services.json
 *.db-journal
 __pycache__/
 *.py[cod]

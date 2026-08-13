@@ -19,6 +19,7 @@ function render() {
   const tunnels = Array.isArray(data.tunnels) ? data.tunnels : [];
   const network = Array.isArray(data.network) ? data.network : [];
   const alerts = Array.isArray(data.alerts) ? data.alerts : [];
+  if (data.bandwidth) { document.querySelector('#downloadRate').textContent = `${data.bandwidth.downloadMbps ?? 0} Mbps`; document.querySelector('#uploadRate').textContent = `${data.bandwidth.uploadMbps ?? 0} Mbps`; }
   document.querySelector('#serviceList').innerHTML = services.slice(0,4).map(s => `<div class="service-row"><span class="service-icon ${s.color || 'gray'}">${s.icon || '◈'}</span><div><b>${s.name}</b><small>${s.host}</small></div><span class="online-dot"></span><small>${s.ms || '—'}</small></div>`).join('');
   document.querySelector('#servicesGrid').innerHTML = services.map(s => `<article class="service-card"><span class="service-icon ${s.color || 'gray'}">${s.icon || '◈'}</span><div><h3>${s.name}</h3><p>${s.host}</p></div><span class="status-pill ${s.status === 'Online' ? '' : 'private'}">${s.status || 'Unknown'}</span><footer>Response time <b>${s.ms || '—'}</b></footer></article>`).join('');
   document.querySelector('#tunnelTable').innerHTML = tunnels.map(t => `<tr><td><b>${t[0]}</b></td><td><code>${t[1]}</code></td><td>${t[2]}</td><td><span class="status-pill">${t[3]}</span></td><td>${t[4]}</td></tr>`).join('');

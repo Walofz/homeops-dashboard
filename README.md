@@ -7,8 +7,8 @@ HomeOps เป็น dashboard สำหรับโครงสร้าง `Ca
 - หน้า login แบบ custom ที่ใช้ username/password จริง
 - เก็บ password hash และ session ใน SQLite (`homeops.db`)
 - ป้องกันหน้า dashboard และ `/api/*` ที่ server ก่อนส่งข้อมูล
-- มี Demo / Live API switch; Live เรียก `GET /api/dashboard` เมื่อคุณเพิ่ม endpoint นี้ภายหลัง
-- ไม่มีการดึงสถานะ Caddy, FRP หรือ bandwidth จริงในตอนนี้
+- มี Demo / Live API switch; Live เรียก `GET /api/dashboard` ที่มีใน `server.py`
+- Live เก็บ bandwidth ของ VPS, ตรวจ FRPS metrics และ health-check services จริง
 
 ## Deploy บน VPS
 
@@ -26,6 +26,9 @@ User=homeops
 WorkingDirectory=/opt/homeops
 Environment=HOMEOPS_ADMIN_USER=admin
 Environment=HOMEOPS_ADMIN_PASSWORD=เปลี่ยนเป็นรหัสผ่านยาวและสุ่ม
+Environment=HOMEOPS_FRPS_METRICS_URL=http://127.0.0.1:7500/metrics
+Environment=HOMEOPS_FRPS_USER=homeops
+Environment=HOMEOPS_FRPS_PASSWORD=เปลี่ยนเป็นรหัสผ่าน FRPS dashboard
 ExecStart=/usr/bin/python3 /opt/homeops/server.py
 Restart=always
 
@@ -43,6 +46,15 @@ sudo systemctl enable --now homeops
 ```
 
 หลังเริ่มสำเร็จครั้งแรก ให้ย้าย `HOMEOPS_ADMIN_PASSWORD` ออกจาก service file ไปไว้ใน systemd environment file ที่สิทธิ์ `600` ตามนโยบายของคุณ; password จะถูก hash ลง SQLite แล้ว
+
+สร้างไฟล์ตั้งค่าบริการจริงก่อนเปิด Live mode:
+
+```sh
+cp /opt/homeops/services.example.json /opt/homeops/services.json
+sudo chown homeops:homeops /opt/homeops/services.json
+```
+
+แก้ `services.json` ให้เป็นโดเมน, health URL และ IP:port ภายในบ้านของคุณ. ไฟล์นี้ถูก ignore จาก Git เพื่อไม่เผยข้อมูล LAN ของคุณ
 
 ## Caddy
 
@@ -69,13 +81,13 @@ Caddy ทำ TLS/reverse proxy เท่านั้น; application จะต�
 
 หากเปิด `index.html` ด้วย file browser โดยตรง จะข้ามระบบ login ได้ เพราะไม่ได้ผ่าน `server.py`; สำหรับใช้งานจริงให้เข้าเฉพาะผ่านโดเมน/Caddy
 
-## Live API ในอนาคต
+## Live API
 
-โหมด Live ต้องการ `GET /api/dashboard` ที่ตอบ JSON. Server ปัจจุบันป้องกันเส้นทาง `/api/*` ด้วย session แล้ว แต่ยังไม่ได้สร้างข้อมูล monitoring ให้เอง. เมื่อเพิ่ม endpoint ต้องให้มันคืนอย่างน้อย `services` และ `tunnels`; ดูรูปแบบตัวอย่างใน `demoData` ภายใน [app.js](app.js)
+กด **Live API** ในมุมขวาบนเพื่อให้หน้าเว็บเรียก `GET /api/dashboard`. Server จะตอบข้อมูลจริงที่รวม bandwidth ของ VPS, ความพร้อมของ FRPS metrics และ health check ของทุก service ใน `services.json`. ต้องรอสองครั้งในการ refresh เพื่อคำนวณอัตรา bandwidth จากผลต่างของ byte counter
 
 ## Live monitoring บน Ubuntu VPS
 
-ส่วนนี้เป็นการตั้งค่าเพิ่มเติมเมื่อพร้อมใช้โหมด **Live API**; ไม่จำเป็นสำหรับโหมด Demo
+ส่วนนี้เป็นการตั้งค่าเพิ่มเติมเพื่อใช้โหมด **Live API**; ไม่จำเป็นสำหรับโหมด Demo
 
 ### VPS bandwidth
 

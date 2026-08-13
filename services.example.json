@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Home Assistant",
+    "host": "home.example.com",
+    "healthUrl": "https://home.example.com/",
+    "tunnel": "home-assistant",
+    "localTarget": "192.168.1.10:8123",
+    "icon": "⌂",
+    "color": "green"
+  },
+  {
+    "name": "Immich",
+    "host": "photos.example.com",
+    "healthUrl": "https://photos.example.com/api/server/ping",
+    "tunnel": "immich",
+    "localTarget": "192.168.1.12:2283",
+    "icon": "◉",
+    "color": "violet"
+  }
+]
