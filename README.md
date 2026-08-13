@@ -54,7 +54,7 @@ cp /opt/homeops/services.example.json /opt/homeops/services.json
 sudo chown homeops:homeops /opt/homeops/services.json
 ```
 
-แก้ `services.json` ให้เป็นโดเมน, health URL และ IP:port ภายในบ้านของคุณ. ไฟล์นี้ถูก ignore จาก Git เพื่อไม่เผยข้อมูล LAN ของคุณ
+แก้ `services.json` ให้เป็นโดเมน, health URL และ IP:port ภายในบ้านของคุณ. ไฟล์นี้ถูก ignore จาก Git เพื่อไม่เผยข้อมูล LAN ของคุณ หลังล็อกอินแล้วสามารถกด **Manage services** ในหน้า **Services** เพื่อเพิ่ม, แก้ไข หรือลบรายการได้; การเปลี่ยนแปลงนี้มีผลเฉพาะ HomeOps monitoring และไม่แก้ไข `frpc.toml`
 
 ## Caddy
 
@@ -62,7 +62,7 @@ sudo chown homeops:homeops /opt/homeops/services.json
 
 ```caddyfile
 dashboard.example.com {
-    reverse_proxy 127.0.0.1:3000
+    reverse_proxy 127.0.0.1:13000
 }
 ```
 
@@ -85,7 +85,7 @@ Caddy ทำ TLS/reverse proxy เท่านั้น; application จะต�
 
 - HomeOps ออก session cookie พร้อม `Secure`, `HttpOnly` และ `SameSite=Strict` ดังนั้นต้องเข้าผ่าน HTTPS ที่ Caddy เท่านั้น
 - ระบบจำกัดความพยายามลงชื่อเข้าใช้ที่ 5 ครั้งต่อบัญชีใน 15 นาที และล้าง session ที่หมดอายุทุกชั่วโมง
-- Caddy เป็น trusted reverse proxy ของแอป; อย่า expose port `3000` ออก internet
+- Caddy เป็น trusted reverse proxy ของแอป; อย่า expose port `13000` ออก internet
 - Live health checks ทำงานพร้อมกันและ cache ผล 20 วินาที เพื่อลดการรอเมื่อปลายทางหลายรายการล่ม
 
 ## Live API
